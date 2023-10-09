@@ -32,14 +32,6 @@ const verifyJWT = (req, res, next) => {
   });
 };
 
-// add jewelry
-
-app.get("/jewelrys", verifyJWT, async (req, res) => {
-  const result = await classesCollection.find().toArray();
-  res.send(result);
-});
-
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hinjtmc.mongodb.net/?retryWrites=true&w=majority`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -47,7 +39,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 async function run() {
   try {
@@ -55,7 +47,7 @@ async function run() {
     // await client.connect();
 
     const usersCollection = client.db("dazzlyDB").collection("users");
-
+    const jewelryCollection = client.db("dazzlyDB").collection("jewelrys");
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -65,7 +57,6 @@ async function run() {
 
       res.send({ token });
     });
-
 
     // verify admin and Owner
     const verifyAdmin = async (req, res, next) => {
@@ -92,16 +83,14 @@ async function run() {
       next();
     };
 
-     //* users api
-     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+    //* users api
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
     app.get("/users/owner", async (req, res) => {
-      const owners = await usersCollection
-        .find({ role: "owner" })
-        .toArray();
+      const owners = await usersCollection.find({ role: "owner" }).toArray();
       res.send(owners);
     });
 
@@ -179,18 +168,30 @@ async function run() {
       res.send(result);
     });
 
+    // add jewelry
+
+    app.get("/jewelrys", verifyJWT, async (req, res) => {
+      const result = await jewelryCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/jewelrys", verifyJWT, verifyOwner, async (req, res) => {
+      const newjewelrys = req.body;
+      const result = await jewelryCollection.insertOne(newjewelrys);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
   }
 }
 run().catch(console.dir);
-
-
 
 app.get("/", (req, res) => {
   res.send("Dazzly is Opened");
